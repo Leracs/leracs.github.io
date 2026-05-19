@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>LMDV Intelligence</title>
+<style>
+:root {
+  --bg: #080C18;
+  --surface: #0D1524;
+  --card: #111D30;
+  --card2: #162035;
+  --border: #1C2E48;
+  --border2: #243650;
+  --accent: #3A8EFF;
+  --accent-dim: rgba(58,142,255,0.12);
+  --accent-glow: rgba(58,142,255,0.25);
+  --purple: #7B6CF6;
+  --purple-dim: rgba(123,108,246,0.12);
+  --red: #FF3B5C;
+  --red-dim: rgba(255,59,92,0.12);
+  --orange: #FF8C38;
+  --orange-dim: rgba(255,140,56,0.1);
+  --green: #00D084;
+  --green-dim: rgba(0,208,132,0.1);
+  --yellow: #FFD166;
+  --t1: #E2EAF8;
+  --t2: #7A8FA8;
+  --t3: #475A72;
+  --r: 14px;
+  --rs: 9px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);
+  color:var(--t1);
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Segoe UI',sans-serif;
+  max-width:430px;
+  margin:0 auto;
+  position:relative;
+  overflow:hidden;
+  height:100%;
+}
+
+/* ─── SPLASH ─── */
+#splash{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:999;transition:opacity 0.6s ease;
+}
+#splash.hide{opacity:0;pointer-events:none}
+.splash-logo{
+  width:72px;height:72px;border-radius:20px;
+  background:linear-gradient(135deg,#3A8EFF,#7B6CF6);
+  display:flex;align-items:center;justify-content:center;
+  font-size:28px;font-weight:800;color:#fff;
+  box-shadow:0 0 40px rgba(58,142,255,0.4);
+  margin-bottom:20px;
+  animation:logoPulse 1.5s ease infinite;
+}
+@keyframes logoPulse{0%,100%{box-shadow:0 0 30px rgba(58,142,255,0.3)}50%{box-shadow:0 0 60px rgba(58,142,255,0.6)}}
+.splash-title{font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px}
+.splash-sub{font-size:13px;color:var(--t2);margin-bottom:40px}
+.splash-loader{width:160px;height:2px;background:var(--border);border-radius:2px;overflow:hidden}
+.splash-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));width:0;transition:width 1.2s cubic-bezier(0.4,0,0.2,1)}
+.splash-status{font-size:11px;color:var(--t3);margin-top:10px;letter-spacing:0.5px}
+
+/* ─── APP SHELL ─── */
+#app{display:flex;flex-direction:column;height:100%;opacity:0;transition:opacity 0.4s ease}
+#app.show{opacity:1}
+
+/* ─── STATUS BAR ─── */
+.status-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 20px 6px;font-size:12px;color:var(--t2);flex-shrink:0;
+}
+.status-time{font-weight:700;color:var(--t1);font-size:13px}
+.status-icons{display:flex;gap:5px;align-items:center;font-size:11px}
+.live-dot{
+  width:6px;height:6px;background:var(--green);border-radius:50%;
+  display:inline-block;animation:blink2 2s ease infinite;
+}
+@keyframes blink2{0%,100%{opacity:1}50%{opacity:0.3}}
+
+/* ─── HEADER ─── */
+.app-header{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:2px 20px 14px;flex-shrink:0;
+}
+.logo-wrap{display:flex;align-items:center;gap:10px}
+.logo-icon{
+  width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,var(--accent),var(--purple));
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#fff;
+}
+.logo-name{font-size:15px;font-weight:700;letter-spacing:-0.3px}
+.logo-proj{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:0.8px;margin-top:1px}
+.bell-wrap{position:relative;cursor:pointer}
+.bell-btn{
+  width:38px;height:38px;background:var(--card);border:1px solid var(--border);
+  border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:17px;
+}
+.bell-badge{
+  position:absolute;top:-5px;right:-5px;width:18px;height:18px;
+  background:var(--red);border-radius:50%;font-size:9px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;color:#fff;
+  border:2px solid var(--bg);
+}
+
+/* ─── PROGRESS BAR ─── */
+.progress-wrap{padding:0 20px 10px;display:flex;gap:3px;flex-shrink:0}
+.prog-seg{flex:1;height:3px;background:var(--border);border-radius:2px;transition:background 0.4s}
+.prog-seg.done{background:var(--green)}
+.prog-seg.active{background:var(--accent)}
+
+/* ─── SCROLL AREA ─── */
+.scroll-area{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.scroll-area::-webkit-scrollbar{display:none}
+
+/* ─── STEP HEADER ─── */
+.step-hdr{padding:0 20px 16px}
+.step-tag{font-size:10px;color:var(--t3);font-weight:600;letter-spacing:1.2px;text-transform:uppercase;margin-bottom:4px}
+.step-title{font-size:24px;font-weight:800;letter-spacing:-0.6px}
+
+/* ─── CARD ─── */
+.card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;margin:0 20px 12px;
+}
+.card-title{font-size:10px;color:var(--t2);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+
+/* ─── BOTTOM NAV ─── */
+.bottom-bar{
+  padding:12px 20px 28px;
+  background:linear-gradient(to top,var(--bg) 60%,transparent);
+  flex-shrink:0;
+}
+.bottom-btns{display:flex;gap:10px}
+.btn{
+  padding:15px;border:none;border-radius:var(--r);
+  font-size:15px;font-weight:700;cursor:pointer;letter-spacing:-0.2px;
+  transition:transform 0.15s,opacity 0.15s;
+}
+.btn:active{transform:scale(0.97)}
+.btn-primary{background:var(--accent);color:#fff;flex:1}
+.btn-back{
+  background:var(--card);color:var(--t2);
+  border:1px solid var(--border);flex:0 0 auto;padding:15px 18px;
+}
+.btn-back:active{transform:scale(0.97)}
+.btn-done{background:var(--card);color:var(--green);border:1px solid rgba(0,208,132,0.3);cursor:default;flex:1}
+.btn-done:active{transform:none}
+
+/* ─── SCREENS ─── */
+.screen{display:none}
+.screen.active{display:block}
+
+/* ─────────── HOME ─────────── */
+.greeting{padding:0 20px 20px}
+.greet-tag{font-size:11px;color:var(--accent);font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px}
+.greet-name{font-size:30px;font-weight:800;letter-spacing:-1px}
+.greet-sub{font-size:14px;color:var(--t2);margin-top:4px}
+
+.stats-row{display:flex;gap:10px;margin:0 20px 14px}
+.stat-box{flex:1;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 12px}
+.stat-val{font-size:30px;font-weight:800;line-height:1}
+.stat-lbl{font-size:10px;color:var(--t2);margin-top:3px;text-transform:uppercase;letter-spacing:0.4px}
+
+.section-tag{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:1.2px;padding:0 20px;margin-bottom:8px}
+
+.alert-strip{
+  margin:0 20px 14px;padding:12px 14px;
+  background:var(--red-dim);border:1px solid rgba(255,59,92,0.3);
+  border-radius:var(--r);display:flex;align-items:flex-start;gap:10px;
+  animation:pulseBorder 2s infinite;
+}
+@keyframes pulseBorder{0%,100%{border-color:rgba(255,59,92,0.25)}50%{border-color:rgba(255,59,92,0.55)}}
+.alert-icon-wrap{font-size:20px;margin-top:1px}
+.alert-title{font-size:12px;font-weight:700;color:var(--red)}
+.alert-desc{font-size:11px;color:var(--t2);margin-top:2px;line-height:1.4}
+
+.art-list{background:var(--card);border:1px solid var(--border);border-radius:var(--r);margin:0 20px 12px;overflow:hidden}
+.art-item{display:flex;gap:12px;padding:14px;cursor:pointer;transition:background 0.2s;align-items:flex-start}
+.art-item:active{background:var(--card2)}
+.art-item+.art-item{border-top:1px solid var(--border)}
+.art-bar{width:4px;border-radius:2px;flex-shrink:0;min-height:44px}
+.bar-red{background:var(--red)}
+.bar-orange{background:var(--orange)}
+.bar-gray{background:var(--t3)}
+.art-headline{font-size:14px;font-weight:600;line-height:1.35}
+.art-meta{font-size:11px;color:var(--t3);margin-top:4px}
+.unread-pip{width:8px;height:8px;background:var(--red);border-radius:50%;flex-shrink:0;margin-top:4px}
+
+/* ─────────── INGEST ─────────── */
+.source-row{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+.src-logo{
+  width:30px;height:30px;border-radius:7px;
+  background:linear-gradient(135deg,#C62828,#E53935);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:800;color:#fff;letter-spacing:-0.5px;
+}
+.src-name{font-size:12px;font-weight:700;color:var(--t1)}
+.src-section{font-size:10px;color:var(--t3);margin-top:1px}
+.src-time{font-size:10px;color:var(--t3);margin-left:auto}
+.art-title{font-size:16px;font-weight:700;line-height:1.35;margin-bottom:10px}
+.art-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.tag{font-size:10px;padding:3px 9px;border-radius:10px;background:var(--surface);border:1px solid var(--border2);color:var(--t3)}
+.art-body{font-size:13px;line-height:1.6;color:var(--t2)}
+.art-body strong{color:var(--t1)}
+.hl{color:var(--accent);font-weight:700}
+.meta-grid{display:flex;flex-direction:column;gap:8px}
+.meta-row{display:flex;justify-content:space-between;align-items:center}
+.meta-k{font-size:12px;color:var(--t3)}
+.meta-v{font-size:12px;font-weight:700}
+.meta-v.accent{color:var(--accent)}
+
+/* ─────────── SUMMARY ─────────── */
+.ai-badge{display:flex;align-items:center;gap:7px;margin-bottom:12px}
+.ai-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0}
+.ai-label{font-size:11px;color:var(--green);font-weight:600;text-transform:uppercase;letter-spacing:0.6px}
+.loading-lines{display:flex;flex-direction:column;gap:10px}
+.line-shimmer{height:13px;border-radius:6px;background:linear-gradient(90deg,var(--card) 25%,var(--card2) 50%,var(--card) 75%);background-size:300% 100%;animation:shimmer 1.4s infinite}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+.bullet-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.bullet-item:last-child{border-bottom:none}
+.bullet-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);margin-top:6px;flex-shrink:0}
+.bullet-text{font-size:14px;line-height:1.55;color:var(--t1)}
+.why-card{
+  background:rgba(58,142,255,0.05);border:1px solid rgba(58,142,255,0.18);
+  border-radius:var(--r);padding:14px;margin:0 20px 12px;
+}
+.why-label{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.why-text{font-size:13px;color:var(--t2);line-height:1.55}
+
+/* ─────────── CLASSIFICATION ─────────── */
+.class-badge{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:9px 16px;border-radius:22px;font-size:14px;font-weight:700;margin-bottom:16px;
+}
+.badge-crit{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,59,92,0.3)}
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.type-box{padding:13px;border-radius:var(--rs);border:1px solid var(--border)}
+.type-box.sel{background:var(--red-dim);border-color:rgba(255,59,92,0.35)}
+.type-box.off{opacity:0.4}
+.type-emoji{font-size:22px;margin-bottom:4px}
+.type-name{font-size:12px;font-weight:700}
+.type-name.sel{color:var(--red)}
+.type-sub{font-size:10px;color:var(--t3);margin-top:2px}
+.motiv{font-size:13px;line-height:1.55;color:var(--t1)}
+
+/* ─────────── SCORE ─────────── */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;padding:16px 0 8px}
+.gauge-num{font-size:56px;font-weight:900;letter-spacing:-3px;line-height:1}
+.gauge-unit{font-size:12px;color:var(--t2);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.gauge-verdict{font-size:13px;font-weight:700;color:var(--orange);margin-top:8px;display:flex;align-items:center;gap:6px}
+.factor-row{margin-bottom:10px}
+.factor-row:last-child{margin-bottom:0}
+.factor-top{display:flex;justify-content:space-between;margin-bottom:5px}
+.factor-name{font-size:12px;color:var(--t1)}
+.factor-val{font-size:12px;font-weight:700}
+.bar-track{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;width:0;transition:width 1s cubic-bezier(0.4,0,0.2,1)}
+
+/* ─────────── RADAR ─────────── */
+.radar-wrap{display:flex;justify-content:center;padding:8px 0}
+.axis-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.axis-tag{font-size:11px;padding:4px 10px;border-radius:10px;font-weight:700}
+.dominant-card{
+  background:rgba(255,59,92,0.04);border:1px solid rgba(255,59,92,0.2);
+  border-radius:var(--r);padding:14px;margin:0 20px 12px;
+}
+.dominant-label{font-size:10px;color:var(--red);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.dominant-title{font-size:15px;font-weight:700;margin-bottom:4px}
+.dominant-desc{font-size:12px;color:var(--t2);line-height:1.45}
+
+/* ─────────── JOURNALIST ─────────── */
+.jprofile{display:flex;gap:14px;align-items:flex-start}
+.javatar{
+  width:54px;height:54px;border-radius:14px;flex-shrink:0;
+  background:linear-gradient(135deg,#1E3A6A,#3A1E6A);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;font-weight:800;color:#fff;
+}
+.jname{font-size:16px;font-weight:800}
+.joutlet{font-size:12px;color:var(--t2);margin-top:2px}
+.jsince{font-size:10px;color:var(--t3);margin-top:2px}
+.jposture{
+  display:inline-flex;align-items:center;gap:5px;
+  margin-top:9px;padding:5px 11px;border-radius:20px;
+  font-size:11px;font-weight:700;
+  background:var(--red-dim);color:var(--red);border:1px solid rgba(255,59,92,0.25);
+}
+.jstats{display:flex;gap:8px;margin-top:14px}
+.jstat{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:var(--rs);padding:10px 11px}
+.jstat-val{font-size:22px;font-weight:800}
+.jstat-lbl{font-size:9px;color:var(--t3);margin-top:2px;text-transform:uppercase;letter-spacing:0.4px}
+.past-art{display:flex;flex-direction:column;gap:0}
+.past-item{padding:10px 0;border-bottom:1px solid var(--border)}
+.past-item:last-child{border-bottom:none}
+.past-headline{font-size:12px;font-weight:700;line-height:1.3}
+.past-meta{font-size:10px;color:var(--t3);margin-top:3px}
+.tone-neg{color:var(--red)}
+.tone-pos{color:var(--green)}
+.tone-neu{color:var(--t2)}
+
+/* ─────────── ACTIONS ─────────── */
+.action-intro{font-size:13px;color:var(--t2);line-height:1.5;padding:0 20px 14px}
+.action-card{
+  display:flex;gap:14px;align-items:flex-start;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);padding:16px;margin:0 20px 10px;
+  cursor:pointer;transition:all 0.2s;
+}
+.action-card:active{transform:scale(0.97)}
+.action-card.sel{border-color:var(--accent);background:var(--accent-dim)}
+.action-ico{
+  width:46px;height:46px;border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
+}
+.ico-alarm{background:var(--red-dim)}
+.ico-eye{background:var(--orange-dim)}
+.ico-pause{background:rgba(122,139,166,0.1)}
+.action-name{font-size:14px;font-weight:700}
+.action-desc{font-size:12px;color:var(--t2);margin-top:3px;line-height:1.45}
+.ai-rec{
+  display:flex;align-items:center;gap:7px;
+  padding:10px 20px 4px;font-size:12px;color:var(--accent);
+}
+.ai-rec-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);flex-shrink:0}
+
+/* ─────────── DECISION ─────────── */
+.dec-header{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+.dec-icon{
+  width:50px;height:50px;border-radius:14px;flex-shrink:0;
+  background:var(--red-dim);border:1px solid rgba(255,59,92,0.35);
+  display:flex;align-items:center;justify-content:center;font-size:24px;
+}
+.dec-title{font-size:19px;font-weight:800}
+.dec-sub{font-size:12px;color:var(--t2);margin-top:2px}
+.urgency-label{display:flex;justify-content:space-between;margin-bottom:5px}
+.urgency-k{font-size:11px;color:var(--t2)}
+.urgency-v{font-size:11px;font-weight:700;color:var(--red)}
+.dec-row{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}
+.dec-row:last-child{border-bottom:none}
+.dec-k{font-size:11px;color:var(--t2);text-transform:uppercase;letter-spacing:0.7px}
+.dec-v{font-size:13px;font-weight:700}
+.dec-v.red{color:var(--red)}
+.dec-v.orange{color:var(--orange)}
+.dec-v.green{color:var(--green)}
+.owner-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:5px 10px;background:var(--purple-dim);
+  border:1px solid rgba(123,108,246,0.25);border-radius:20px;
+  font-size:12px;font-weight:700;color:var(--purple);
+}
+.archive-card{
+  background:rgba(0,208,132,0.04);border:1px solid rgba(0,208,132,0.2);
+  border-radius:var(--r);padding:14px;margin:0 20px 12px;
+}
+.archive-label{font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.archive-text{font-size:13px;color:var(--t2);line-height:1.5}
+.archive-text span{color:var(--t1);font-weight:600}
+.dec-actions{display:flex;gap:10px;padding:4px 20px 0}
+.btn-ghost{
+  flex:1;padding:14px;border-radius:var(--r);font-size:14px;font-weight:700;
+  background:var(--card);color:var(--t2);border:1px solid var(--border);cursor:pointer;
+  transition:transform 0.15s;
+}
+.btn-ghost:active{transform:scale(0.97)}
+.btn-share{
+  flex:1;padding:14px;border-radius:var(--r);font-size:14px;font-weight:700;
+  background:var(--green);color:#fff;border:none;cursor:pointer;
+  transition:transform 0.15s,background 0.3s;
+}
+.btn-share:active{transform:scale(0.97)}
+
+/* ─────────── TOAST ─────────── */
+#toast{
+  position:fixed;top:80px;left:50%;transform:translateX(-50%) translateY(-20px);
+  width:calc(100% - 40px);max-width:390px;
+  background:var(--card2);border:1px solid var(--border2);border-radius:var(--r);
+  padding:12px 16px;display:flex;align-items:flex-start;gap:10px;
+  opacity:0;pointer-events:none;
+  transition:all 0.4s cubic-bezier(0.34,1.56,0.64,1);
+  z-index:100;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast-ico{font-size:18px;flex-shrink:0;margin-top:1px}
+.toast-title{font-size:13px;font-weight:700;color:var(--t1)}
+.toast-body{font-size:11px;color:var(--t2);margin-top:2px;line-height:1.4}
+
+/* ─────────── ANIM ─────────── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.fu{animation:fadeUp 0.35s ease both}
+.fu1{animation-delay:0.05s}
+.fu2{animation-delay:0.12s}
+.fu3{animation-delay:0.20s}
+.fu4{animation-delay:0.28s}
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash">
+  <div class="splash-logo">MI</div>
+  <div class="splash-title">Media Intelligence</div>
+  <div class="splash-sub">Progetto LMDV — Console decisionale</div>
+  <div class="splash-loader"><div class="splash-fill" id="splashFill"></div></div>
+  <div class="splash-status" id="splashStatus">Connessione al sistema AI…</div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- STATUS BAR -->
+  <div class="status-bar">
+    <span class="status-time">07:31</span>
+    <div class="status-icons">
+      <span class="live-dot"></span>
+      <span style="color:var(--green);font-weight:600;font-size:10px;">LIVE</span>
+      <span style="margin-left:6px">●●●●○</span>
+      <span>87%</span>
+    </div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="app-header">
+    <div class="logo-wrap">
+      <div class="logo-icon">MI</div>
+      <div>
+        <div class="logo-name">Media Intelligence</div>
+        <div class="logo-proj">Progetto LMDV</div>
+      </div>
+    </div>
+    <div class="bell-wrap" onclick="goHome()">
+      <div class="bell-btn">🔔</div>
+      <div class="bell-badge" id="bellBadge">3</div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="progress-wrap" id="progressWrap" style="display:none">
+    <div class="prog-seg" id="ps0"></div>
+    <div class="prog-seg" id="ps1"></div>
+    <div class="prog-seg" id="ps2"></div>
+    <div class="prog-seg" id="ps3"></div>
+    <div class="prog-seg" id="ps4"></div>
+    <div class="prog-seg" id="ps5"></div>
+    <div class="prog-seg" id="ps6"></div>
+    <div class="prog-seg" id="ps7"></div>
+  </div>
+
+  <!-- SCROLL AREA -->
+  <div class="scroll-area">
+
+    <!-- ── HOME ── -->
+    <div class="screen active" id="screen-home">
+      <div class="greeting">
+        <div class="greet-tag">Buongiorno · Lun 19 Maggio 2025</div>
+        <div class="greet-name">Raffaella,</div>
+        <div class="greet-sub">3 articoli richiedono la tua attenzione.</div>
+      </div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-val" style="color:var(--red)">1</div><div class="stat-lbl">Critico</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--orange)">2</div><div class="stat-lbl">Da monitorare</div></div>
+        <div class="stat-box"><div class="stat-val" style="color:var(--t2)">8</div><div class="stat-lbl">Totale oggi</div></div>
+      </div>
+      <div class="alert-strip">
+        <div class="alert-icon-wrap">⚡</div>
+        <div>
+          <div class="alert-title">Richiede attenzione immediata</div>
+          <div class="alert-desc">La Stampa ha pubblicato un articolo sulla governance LMDV a firma di un giornalista critico</div>
+        </div>
+      </div>
+      <div class="section-tag">Oggi — Priorità alta</div>
+      <div class="art-list">
+        <div class="art-item" onclick="startFlow()">
+          <div class="art-bar bar-red"></div>
+          <div style="flex:1">
+            <div class="art-headline">Disputa tra eredi rischia di bloccare il CdA: il futuro di LMDV è un rebus</div>
+            <div class="art-meta">La Stampa · 06:47 · Marco Tedeschini</div>
+          </div>
+          <div class="unread-pip"></div>
+        </div>
+        <div class="art-item">
+          <div class="art-bar bar-orange"></div>
+          <div style="flex:1">
+            <div class="art-headline">Bruxelles valuta nuove norme sulla tracciabilità nel lusso: i gruppi italiani nel mirino</div>
+            <div class="art-meta">Politico Italia · 07:14 · Elena Rossi · <span style="color:var(--orange)">rischio latente</span></div>
+          </div>
+          <div class="unread-pip"></div>
+        </div>
+        <div class="art-item">
+          <div class="art-bar bar-orange"></div>
+          <div style="flex:1">
+            <div class="art-headline">LMDV tra i candidati al premio "Eccellenza italiana" 2025</div>
+            <div class="art-meta">Corriere della Sera · 08:12 · Sara Ferretti · <span style="color:var(--green)">opportunità</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-tag" style="margin-top:8px">Rassegna completa · altri 5 articoli</div>
+      <div class="art-list">
+        <div class="art-item">
+          <div class="art-bar bar-gray"></div>
+          <div style="flex:1">
+            <div class="art-headline">CEO di LMDV: «Il lusso italiano è resiliente, puntiamo sull'artigianalità»</div>
+            <div class="art-meta">Il Sole 24 Ore · 09:02 · Intervista esclusiva · <span style="color:var(--green)">positivo</span></div>
+          </div>
+        </div>
+        <div class="art-item">
+          <div class="art-bar bar-gray"></div>
+          <div style="flex:1">
+            <div class="art-headline">LMDV vince il Compasso d'Oro per la collezione sostenibile 2025</div>
+            <div class="art-meta">Design Week · 07:30 · Redazione · <span style="color:var(--green)">positivo</span></div>
+          </div>
+        </div>
+        <div class="art-item">
+          <div class="art-bar bar-gray"></div>
+          <div style="flex:1">
+            <div class="art-headline">Il settore lusso rallenta: i dati Q1 2025 confermano la frenata globale</div>
+            <div class="art-meta">MF Fashion · 07:55 · Redazione · <span style="color:var(--t3)">neutro</span></div>
+          </div>
+        </div>
+        <div class="art-item">
+          <div class="art-bar bar-gray"></div>
+          <div style="flex:1">
+            <div class="art-headline">I 10 brand italiani da tenere d'occhio nel 2025: LMDV tra i protagonisti</div>
+            <div class="art-meta">Forbes Italia · 06:00 · Andrea Conti · <span style="color:var(--t3)">neutro</span></div>
+          </div>
+        </div>
+        <div class="art-item">
+          <div class="art-bar bar-gray"></div>
+          <div style="flex:1">
+            <div class="art-headline">Kering e LVMH sotto pressione: l'effetto contagio sui brand indipendenti</div>
+            <div class="art-meta">Reuters Italia · 05:45 · Redazione · <span style="color:var(--t3)">settore</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 1: INGEST ── -->
+    <div class="screen" id="screen-s1">
+      <div class="step-hdr">
+        <div class="step-tag">Passo 01 / 08 · Ingest</div>
+        <div class="step-title">Articolo acquisito</div>
+      </div>
+      <div class="card fu">
+        <div class="source-row">
+          <div class="src-logo">LS</div>
+          <div>
+            <div class="src-name">La Stampa</div>
+            <div class="src-section">Economia &amp; Imprese</div>
+          </div>
+          <div class="src-time">Oggi · 06:47</div>
+        </div>
+        <div class="art-title">Disputa tra eredi rischia di bloccare il CdA: il futuro di <span class="hl">LMDV</span> è un rebus</div>
+        <div class="art-tags">
+          <span class="tag">#governance</span>
+          <span class="tag">#famiglia</span>
+          <span class="tag">#IPO</span>
+          <span class="tag">#successione</span>
+        </div>
+        <div class="art-body">
+          La querelle interna al <strong>Gruppo LMDV</strong> si fa pubblica. Secondo fonti vicine al consiglio, i figli del fondatore avrebbero posizioni inconciliabili sulla successione alla presidenza, con ripercussioni dirette sul percorso verso la quotazione in borsa prevista per il 2026. Il legale della famiglia, raggiunto telefonicamente, non ha rilasciato commenti ufficiali.
+        </div>
+      </div>
+      <div class="card fu fu1">
+        <div class="card-title">Metadati rilevati</div>
+        <div class="meta-grid">
+          <div class="meta-row"><span class="meta-k">Autore</span><span class="meta-v">Marco Tedeschini</span></div>
+          <div class="meta-row"><span class="meta-k">Testata</span><span class="meta-v">La Stampa</span></div>
+          <div class="meta-row"><span class="meta-k">Sezione</span><span class="meta-v">Economia &amp; Imprese</span></div>
+          <div class="meta-row"><span class="meta-k">Tiratura stimata</span><span class="meta-v">230.000 lettori</span></div>
+          <div class="meta-row"><span class="meta-k">Match LMDV</span><span class="meta-v accent">3 citazioni dirette</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: SUMMARY ── -->
+    <div class="screen" id="screen-s2">
+      <div class="step-hdr">
+        <div class="step-tag">Passo 02 / 08 · Sintesi AI</div>
+        <div class="step-title">Cosa devi sapere</div>
+      </div>
+      <div class="card" id="s2-loading">
+        <div class="ai-badge"><div class="ai-dot" style="background:var(--accent);animation:blink2 0.8s infinite"></div><span class="ai-label" style="color:var(--accent)">Claude sta elaborando…</span></div>
+        <div class="loading-lines">
+          <div class="line-shimmer" style="width:88%"></div>
+          <div class="line-shimmer" style="width:70%"></div>
+          <div class="line-shimmer" style="width:92%"></div>
+          <div class="line-shimmer" style="width:65%"></div>
+        </div>
+      </div>
+      <div class="card" id="s2-content" style="display:none">
+        <div class="ai-badge"><div class="ai-dot"></div><span class="ai-label">Elaborato da Claude AI</span></div>
+        <div id="s2-bullets"></div>
+      </div>
+      <div class="why-card fu fu2" id="s2-why" style="display:none">
+        <div class="why-label">Perché è rilevante ora</div>
+        <div class="why-text">L'articolo coinvolge direttamente la reputazione del gruppo in una fase delicata pre-IPO. La firma di Tedeschini su La Stampa garantisce alta visibilità nazionale e rischio di ripresa da altre testate entro 24 ore.</div>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: CLASSIFICATION ── -->
+    <div class="screen" id="screen-s3">
+      <div class="step-hdr">
+        <div class="step-tag">Passo 03 / 08 · Classificazione</div>
+        <div class="step-title">Tipo di notizia</div>
+      </div>
+      <div class="card fu">
+        <div class="card-title">Valutazione AI</div>
+        <div class="class-badge badge-crit">⚠️ Rischio Reputazionale</div>
+        <div class="type-grid">
+          <div class="type-box sel">
+            <div class="type-emoji">🔴</div>
+            <div class="type-name sel">Critica</div>
+            <div class="type-sub">Selezionato dall'AI</div>
+          </div>
+          <div class="type-box off">
+            <div class="type-emoji">🟡</div>
+            <div class="type-name">Rischio latente</div>
+          </div>
+          <div class="type-box off">
+            <div class="type-emoji">🟢</div>
+            <div class="type-name">Opportunità</div>
+          </div>
+          <div class="type-box off">
+            <div class="type-emoji">⚪</div>
+            <div class="type-name">Neutra</div>
+          </div>
+        </div>
+      </div>
+      <div class="card fu fu1">
+        <div class="card-title">Motivazione</div>
+        <div class="motiv">Fonte primaria nazionale di qualità, tema governance &amp; successione ad alta probabilità di ripresa. La finestra temporale è critica: l'IPO in programma amplifica l'esposizione di qualsiasi notizia interna.</div>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: SCORE ── -->
+    <div class="screen" id="screen-s4">
+      <div class="step-hdr">
+        <div class="step-tag">Passo 04 / 08 · Score di impatto</div>
+        <div class="step-title">Livello di rischio</div>
+      </div>
+      <div class="card fu">
+        <div class="gauge-wrap">
+          <canvas id="gaugeCanvas" width="220" height="120"></canvas>
+          <div class="gauge-num" id="gaugeNum" style="color:var(--orange)">—</div>
+          <div class="gauge-unit">su 10 · impatto potenziale</div>
+          <div class="gauge-verdict">⚠️ Alto — Azione raccomandata</div>
+        </div>
+      </div>
+      <div class="card fu fu1">
+        <div class="card-title">Fattori di rischio</div>
+        <div class="factor-row">
+          <div class="factor-top"><span class="factor-name">Visibilità testata</span><span class="factor-val" style="color:var(--red)">9 / 10</span></div>
+          <div class="bar-track"><div class="bar-fill" id="bf0" style="background:var(--red)" data-w="90"></div></div>
+        </div>
+        <div class="factor-row">
+          <div class="factor-top"><span class="factor-name">Sensibilità del tema</span><span class="factor-val" style="color:var(--orange)">8 / 10</span></div>
+          <div class="bar-track"><div class="bar-fill" id="bf1" style="background:var(--orange)" data-w="80"></div></div>
+        </div>
+        <div class="factor-row">
+          <div class="factor-top"><span class="factor-name">Rischio contagio mediatico</span><span class="factor-val" style="color:var(--orange)">7 / 10</span></div>
+          <div class="bar-track"><div class="bar-fill" id="bf2" style="background:var(--orange)" data-w="70"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 5: RADAR ── -->
+    <div class="screen" id="screen-s5">
+      <div class="step-hdr">
+        <div class="step-tag">Passo 05 / 08 · Radar narrativo</div>
+        <div class="step-title">Dimensioni attivate</div>
+      </div>
+      <div class="card fu">
+        <div class="card-title">Mappa degli assi narrativi</div>
+        <div class="radar-wrap"><canvas id="radarCanvas" width="280" height="270"></canvas></div>
+        <div class="axis-tags">
+          <span class="axis-tag" style="background:var(--red-dim);color:var(--red)">Reputazionale ●●●●●</span>
+          <span class="axis-tag" style="background:var(--orange-dim);color:var(--orange)">Familiare ●●●●○</span>
+          <span class="axis-tag" style="background:var(--accent-dim);color:var(--accent)">Industriale ●●●○○</span>
+          <span class="axis-tag" style="background:var(--purple-dim);color:var(--purple)">Legal ●●○○○</span>
+          <span class="axis-tag" style="background:rgba(122,139,166,0.1);color:var(--t3)">Privacy ●○○○○</span>
+        </div>
+      </div>
+      <div class="dominant-card fu fu1">
+        <div class="dominant-label">Asse dominante</div>
+        <div class="dominant-title">Reputazionale + Familiare</div>
+        <div class="dominant-desc">La combinazione reputazione + famiglia è la più delicata per un brand identity come LMDV. Richiede risposta coordinata tra comunicazione e legale.</div>
+      </div>
+    </div>
+
+    <!-- ── STEP 6: JOURNALIST ── -->
+    <div class="screen" id="screen-s6">
+      <div class="step-hdr">
+        <div class="step-tag">Passo 06 / 08 · Scheda giornalista</div>
+        <div class="step-title">Chi ha scritto</div>
+      </div>
+      <div class="card fu">
+        <div class="jprofile">
+          <div class="javatar">MT</div>
+          <div>
+            <div class="jname">Marco Tedeschini</div>
+            <div class="joutlet">La Stampa — Economia &amp; Imprese</div>
+            <div class="jsince">Milano · corrispondente dal 2014</div>
+            <div class="jposture">◉ Postura critica verso LMDV</div>
+          </div>
+        </div>
+        <div class="jstats">
+          <div class="jstat"><div class="jstat-val">14</div><div class="jstat-lbl">Art. su LMDV</div></div>
+          <div class="jstat"><div class="jstat-val" style="color:var(--red)">9</div><div class="jstat-lbl">Tono neg.</div></div>
+          <div class="jstat"><div class="jstat-val" style="color:var(--t3)">3</div><div class="jstat-lbl">Neutro</div></div>
+          <div class="jstat"><div class="jstat-val" style="color:var(--green)">2</div><div class="jstat-lbl">Tono pos.</div></div>
+        </div>
+        <div style="margin-top:14px">
+          <div class="card-title" style="margin-bottom:6px">Storico 12 mesi · tono per mese</div>
+          <canvas id="coverageCanvas" width="340" height="64" style="width:100%"></canvas>
+        </div>
+      </div>
+      <div class="card fu fu1">
+        <div class="card-title">Ultimi 3 articoli su LMDV</div>
+        <div class="past-art">
+          <div class="past-item">
+            <div class="past-headline">Il modello LMDV: tra tradizione e crisi di identità</div>
+            <div class="past-meta">14 Feb 2025 · <span class="tone-neg">negativo</span></div>
+          </div>
+          <div class="past-item">
+            <div class="past-headline">LMDV e i fondi: trattativa in stallo</div>
+            <div class="past-meta">28 Nov 2024 · <span class="tone-neg">negativo</span></div>
+          </div>
+          <div class="past-item">
+            <div class="past-headline">La storia del Gruppo LMDV: 40 anni tra lusso e Italia</div>
+            <div class="past-meta">03 Giu 2024 · <span class="tone-neu">neutro/positivo</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 7: ACTIONS ── -->
+    <div class="screen" id="screen-s7">
+      <div class="step-hdr">
+        <div class="step-tag">Passo 07 / 08 · Azioni raccomandate</div>
+        <div class="step-title">Come vuoi rispondere?</div>
+      </div>
+      <div class="action-intro">Seleziona l'azione più appropriata per questa situazione.</div>
+      <div class="action-card fu" id="ac0" onclick="selectAction(0)">
+        <div class="action-ico ico-alarm">🚨</div>
+        <div>
+          <div class="action-name">Attiva ufficio stampa</div>
+          <div class="action-desc">Contatta il responsabile PR entro le 9:00 per preparare una nota. Finestra breve prima che l'articolo venga ripreso.</div>
+        </div>
+      </div>
+      <div class="action-card fu fu1" id="ac1" onclick="selectAction(1)">
+        <div class="action-ico ico-eye">👁️</div>
+        <div>
+          <div class="action-name">Monitoraggio intensivo</div>
+          <div class="action-desc">Imposta alert su LMDV + Tedeschini per le prossime 48h. Attendi prima di agire e valuta l'eco mediatica.</div>
+        </div>
+      </div>
+      <div class="action-card fu fu2" id="ac2" onclick="selectAction(2)">
+        <div class="action-ico ico-pause">⏸️</div>
+        <div>
+          <div class="action-name">Nessuna azione immediata</div>
+          <div class="action-desc">Notizia sotto soglia critica. Archivia e rivedi tra 24h.</div>
+        </div>
+      </div>
+      <div class="ai-rec" id="aiRec" style="display:none">
+        <div class="ai-rec-dot"></div>
+        <span><strong>AI raccomanda:</strong> Attiva ufficio stampa — score 7.8 con autore critico</span>
+      </div>
+    </div>
+
+    <!-- ── STEP 8: DECISION ── -->
+    <div class="screen" id="screen-s8">
+      <div class="step-hdr">
+        <div class="step-tag">Passo 08 / 08 · Decision Card</div>
+        <div class="step-title">Riepilogo decisionale</div>
+      </div>
+      <div class="card fu">
+        <div class="dec-header">
+          <div class="dec-icon">🔴</div>
+          <div>
+            <div class="dec-title">Attenzione Alta</div>
+            <div class="dec-sub">Risposta raccomandata entro le 09:00</div>
+          </div>
+        </div>
+        <div>
+          <div class="urgency-label"><span class="urgency-k">Livello di urgenza</span><span class="urgency-v">78%</span></div>
+          <div class="bar-track" style="height:8px;margin-bottom:14px">
+            <div class="bar-fill" id="decBar" style="background:linear-gradient(90deg,var(--orange),var(--red))" data-w="78"></div>
+          </div>
+        </div>
+        <div class="dec-row"><span class="dec-k">Score impatto</span><span class="dec-v red">7.8 / 10</span></div>
+        <div class="dec-row"><span class="dec-k">Classificazione</span><span class="dec-v red">Critico</span></div>
+        <div class="dec-row"><span class="dec-k">Asse dominante</span><span class="dec-v orange">Reputazionale + Famiglia</span></div>
+        <div class="dec-row"><span class="dec-k">Autore</span><span class="dec-v red">Postura critica storica</span></div>
+        <div class="dec-row"><span class="dec-k">Owner suggerito</span><div class="owner-chip">👤 Dir. Comunicazione</div></div>
+        <div class="dec-row"><span class="dec-k">Next check</span><span class="dec-v green">Ore 11:00 · oggi</span></div>
+        <div class="dec-row"><span class="dec-k">Azione</span><span class="dec-v red">Attiva ufficio stampa</span></div>
+      </div>
+      <div class="archive-card fu fu1">
+        <div class="archive-label"><span>✓</span> Archiviato automaticamente</div>
+        <div class="archive-text">Salvato con tag: <span>#governance #famiglia #IPO #TedeschiniLaStampa</span></div>
+      </div>
+      <div class="dec-actions fu fu2">
+        <button class="btn-ghost" onclick="goHome()">← Dashboard</button>
+        <button class="btn-share" id="shareBtn" onclick="doShare()">Condividi ↗</button>
+      </div>
+      <div style="height:24px"></div>
+    </div>
+
+  </div><!-- /scroll-area -->
+
+  <!-- BOTTOM BAR -->
+  <div class="bottom-bar" id="bottomBar" style="display:none">
+    <div class="bottom-btns">
+      <button class="btn btn-back" id="backBtn" onclick="prevStep()">← Indietro</button>
+      <button class="btn btn-primary" id="mainBtn" onclick="nextStep()">Continua →</button>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- TOAST -->
+<div id="toast">
+  <div class="toast-ico" id="toastIco"></div>
+  <div>
+    <div class="toast-title" id="toastTitle"></div>
+    <div class="toast-body" id="toastBody"></div>
+  </div>
+</div>
+
+<script>
+/* ──────────────────────────────── STATE ──────────────────────────────── */
+const STEPS = ['home','s1','s2','s3','s4','s5','s6','s7','s8'];
+let step = 0;
+let selectedAct = -1;
+
+const summaryPoints = [
+  "La Stampa pubblica un'inchiesta sulle tensioni interne tra gli eredi LMDV per la successione alla presidenza del CdA.",
+  "Il conflitto familiare mette direttamente a rischio il percorso di quotazione in borsa pianificato per il 2026.",
+  "Il legale della famiglia si è rifiutato di commentare — segnale che la questione è aperta e potenzialmente escalabile.",
+  "L'autore Marco Tedeschini ha uno storico di 9 articoli negativi su LMDV negli ultimi 12 mesi."
+];
+
+/* ──────────────────────────────── SPLASH ──────────────────────────────── */
+window.addEventListener('load', () => {
+  const fill = document.getElementById('splashFill');
+  const status = document.getElementById('splashStatus');
+  setTimeout(() => { fill.style.width = '60%'; status.textContent = 'Caricamento rassegna stampa…'; }, 200);
+  setTimeout(() => { fill.style.width = '100%'; status.textContent = 'Pronto.'; }, 1400);
+  setTimeout(() => {
+    document.getElementById('splash').classList.add('hide');
+    document.getElementById('app').classList.add('show');
+  }, 2000);
+});
+
+/* ──────────────────────────────── NAV ──────────────────────────────── */
+function startFlow() { goTo(1); }
+function goHome() { goTo(0); }
+
+function goTo(n) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + STEPS[n]).classList.add('active');
+  step = n;
+  updateProgress();
+  updateBtn();
+  window.scrollTo && window.scrollTo(0,0);
+  const sa = document.querySelector('.scroll-area');
+  if(sa) sa.scrollTop = 0;
+  onEnter(n);
+}
+
+function nextStep() { if(step < STEPS.length-1) goTo(step+1); }
+
+function updateProgress() {
+  const wrap = document.getElementById('progressWrap');
+  wrap.style.display = step === 0 ? 'none' : 'flex';
+  for(let i=0;i<8;i++){
+    const el = document.getElementById('ps'+i);
+    el.className = 'prog-seg';
+    const si = i+1;
+    if(si < step) el.classList.add('done');
+    else if(si === step) el.classList.add('active');
+  }
+}
+
+function prevStep() { if(step > 0) goTo(step-1); }
+
+function updateBtn() {
+  const bar = document.getElementById('bottomBar');
+  const btn = document.getElementById('mainBtn');
+  const back = document.getElementById('backBtn');
+  if(step === 0){ bar.style.display='none'; return; }
+  bar.style.display='block';
+  back.style.display = 'block';
+  back.textContent = step === 1 ? '⌂ Home' : '← Indietro';
+  if(step === 8){
+    btn.textContent = '✓ Analisi completata';
+    btn.className = 'btn btn-done';
+  } else {
+    btn.textContent = 'Continua →';
+    btn.className = 'btn btn-primary';
+  }
+}
+
+/* ──────────────────────────────── SCREEN EFFECTS ──────────────────────────────── */
+function onEnter(n) {
+  if(n===2) initSummary();
+  if(n===4) { setTimeout(initGauge,80); setTimeout(initBars,120); }
+  if(n===5) setTimeout(initRadar,100);
+  if(n===6) setTimeout(initCoverage,80);
+  if(n===8) { setTimeout(initDecBar,200); setTimeout(()=>showToast('📢','L\'articolo sta girando','2 testate hanno già citato La Stampa nelle ultime 2 ore'),800); }
+}
+
+/* ──────────────────────────────── SUMMARY ──────────────────────────────── */
+function initSummary() {
+  const load=document.getElementById('s2-loading');
+  const cont=document.getElementById('s2-content');
+  const why=document.getElementById('s2-why');
+  const bul=document.getElementById('s2-bullets');
+  load.style.display='block'; cont.style.display='none'; why.style.display='none'; bul.innerHTML='';
+  setTimeout(()=>{
+    load.style.display='none'; cont.style.display='block';
+    summaryPoints.forEach((txt,i)=>{
+      setTimeout(()=>{
+        const d=document.createElement('div');
+        d.className='bullet-item';
+        d.style.cssText='opacity:0;transform:translateY(10px);transition:all 0.3s ease';
+        d.innerHTML=`<div class="bullet-dot"></div><div class="bullet-text">${txt}</div>`;
+        bul.appendChild(d);
+        requestAnimationFrame(()=>{ setTimeout(()=>{ d.style.opacity='1'; d.style.transform='translateY(0)'; },20); });
+      }, i*280);
+    });
+    setTimeout(()=>{ why.style.display='block'; },summaryPoints.length*280+200);
+  },1600);
+}
+
+/* ──────────────────────────────── GAUGE ──────────────────────────────── */
+function initGauge() {
+  const canvas=document.getElementById('gaugeCanvas');
+  const ctx=canvas.getContext('2d');
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=220*dpr; canvas.height=120*dpr;
+  ctx.scale(dpr,dpr);
+  const numEl=document.getElementById('gaugeNum');
+  const target=7.8;
+  let cur=0;
+  const t0=performance.now();
+  const dur=1400;
+  function draw(v){
+    ctx.clearRect(0,0,220,120);
+    const cx=110,cy=108,r=84;
+    const sa=Math.PI, ea=2*Math.PI;
+    // bg
+    ctx.beginPath(); ctx.arc(cx,cy,r,sa,ea);
+    ctx.strokeStyle='#1C2E48'; ctx.lineWidth=14; ctx.lineCap='round'; ctx.stroke();
+    // fill
+    const fa=sa+(v/10)*Math.PI;
+    const g=ctx.createLinearGradient(20,108,200,108);
+    g.addColorStop(0,'#3A8EFF'); g.addColorStop(1, v>7?'#FF3B5C':v>4?'#FF8C38':'#00D084');
+    ctx.beginPath(); ctx.arc(cx,cy,r,sa,fa);
+    ctx.strokeStyle=g; ctx.lineWidth=14; ctx.lineCap='round'; ctx.stroke();
+    // ticks
+    for(let i=0;i<=10;i++){
+      const a=Math.PI+(i/10)*Math.PI;
+      ctx.beginPath();
+      ctx.moveTo(cx+(r-20)*Math.cos(a), cy+(r-20)*Math.sin(a));
+      ctx.lineTo(cx+(r-10)*Math.cos(a), cy+(r-10)*Math.sin(a));
+      ctx.strokeStyle='#1C2E48'; ctx.lineWidth=2; ctx.lineCap='butt'; ctx.stroke();
+    }
+  }
+  function tick(now){
+    const p=Math.min((now-t0)/dur,1);
+    const e=1-Math.pow(1-p,3);
+    cur=target*e;
+    draw(cur);
+    numEl.textContent=cur.toFixed(1);
+    if(p<1) requestAnimationFrame(tick); else numEl.textContent=target.toString();
+  }
+  requestAnimationFrame(tick);
+}
+
+function initBars(){
+  ['bf0','bf1','bf2'].forEach(id=>{
+    const el=document.getElementById(id);
+    const w=el.dataset.w;
+    el.style.width='0%';
+    setTimeout(()=>{ el.style.width=w+'%'; },50);
+  });
+}
+
+/* ──────────────────────────────── RADAR ──────────────────────────────── */
+function initRadar() {
+  const canvas=document.getElementById('radarCanvas');
+  const dpr=window.devicePixelRatio||1;
+  const W=280, H=270;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  const labels=['Reputaz.','Familiare','Industriale','Legal','Privacy'];
+  const vals=[0.96,0.80,0.60,0.44,0.20];
+  const colors=['#FF3B5C','#FF8C38','#3A8EFF','#7B6CF6','#7A8FA8'];
+  const cx=140, cy=138, maxR=96, N=5;
+  const t0=performance.now(), dur=1000;
+  function draw(prog){
+    ctx.clearRect(0,0,W,H);
+    // grid
+    for(let g=1;g<=5;g++){
+      const r=(maxR/5)*g;
+      ctx.beginPath();
+      for(let i=0;i<N;i++){
+        const a=(i/N)*Math.PI*2-Math.PI/2;
+        const x=cx+r*Math.cos(a), y=cy+r*Math.sin(a);
+        i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle=g===5?'#243650':'rgba(28,46,72,0.55)';
+      ctx.lineWidth=1; ctx.stroke();
+    }
+    // axes
+    for(let i=0;i<N;i++){
+      const a=(i/N)*Math.PI*2-Math.PI/2;
+      ctx.beginPath(); ctx.moveTo(cx,cy);
+      ctx.lineTo(cx+maxR*Math.cos(a), cy+maxR*Math.sin(a));
+      ctx.strokeStyle='#1C2E48'; ctx.lineWidth=1; ctx.stroke();
+    }
+    // shape
+    const cv=vals.map(v=>v*prog);
+    ctx.beginPath();
+    for(let i=0;i<N;i++){
+      const a=(i/N)*Math.PI*2-Math.PI/2;
+      const x=cx+cv[i]*maxR*Math.cos(a), y=cy+cv[i]*maxR*Math.sin(a);
+      i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+    }
+    ctx.closePath();
+    ctx.fillStyle='rgba(255,59,92,0.10)'; ctx.fill();
+    ctx.strokeStyle='rgba(255,59,92,0.7)'; ctx.lineWidth=2; ctx.stroke();
+    // dots
+    for(let i=0;i<N;i++){
+      const a=(i/N)*Math.PI*2-Math.PI/2;
+      const x=cx+cv[i]*maxR*Math.cos(a), y=cy+cv[i]*maxR*Math.sin(a);
+      ctx.beginPath(); ctx.arc(x,y,5,0,Math.PI*2);
+      ctx.fillStyle=colors[i]; ctx.fill();
+    }
+    // labels
+    ctx.font='bold 11px -apple-system,sans-serif'; ctx.textAlign='center';
+    for(let i=0;i<N;i++){
+      const a=(i/N)*Math.PI*2-Math.PI/2;
+      const lx=cx+(maxR+20)*Math.cos(a), ly=cy+(maxR+20)*Math.sin(a)+4;
+      ctx.fillStyle=colors[i]; ctx.fillText(labels[i],lx,ly);
+    }
+  }
+  function tick(now){
+    const p=Math.min((now-t0)/dur,1);
+    const e=1-Math.pow(1-p,2);
+    draw(e);
+    if(p<1) requestAnimationFrame(tick); else draw(1);
+  }
+  requestAnimationFrame(tick);
+}
+
+/* ──────────────────────────────── COVERAGE ──────────────────────────────── */
+function initCoverage(){
+  const canvas=document.getElementById('coverageCanvas');
+  const W=canvas.offsetWidth||320, H=64;
+  const dpr=window.devicePixelRatio||1;
+  canvas.width=W*dpr; canvas.height=H*dpr;
+  canvas.style.width=W+'px'; canvas.style.height=H+'px';
+  const ctx=canvas.getContext('2d');
+  ctx.scale(dpr,dpr);
+  // data: [count, tone] per mese (G..D)
+  const months=[
+    [0,0],[1,-1],[0,0],[2,-1],[1,1],[0,0],
+    [3,-1],[1,-1],[1,0],[1,-1],[2,-1],[1,-1]
+  ];
+  const labels=['G','F','M','A','M','G','L','A','S','O','N','D'];
+  const bw=(W-20)/12, mid=H/2-8;
+  ctx.beginPath(); ctx.moveTo(10,mid); ctx.lineTo(W-10,mid);
+  ctx.strokeStyle='#243650'; ctx.lineWidth=1; ctx.stroke();
+  months.forEach(([cnt,tone],i)=>{
+    const x=10+i*bw+bw/2;
+    if(cnt>0){
+      const bh=Math.min(cnt*9,mid-4);
+      const col=tone<0?'#FF3B5C':tone>0?'#00D084':'#7A8FA8';
+      ctx.fillStyle=col+'70';
+      if(tone<=0) ctx.fillRect(x-7,mid,14,bh);
+      else ctx.fillRect(x-7,mid-bh,14,bh);
+    }
+    ctx.fillStyle='#475A72';
+    ctx.font='9px -apple-system,sans-serif';
+    ctx.textAlign='center';
+    ctx.fillText(labels[i],x,H-2);
+  });
+}
+
+/* ──────────────────────────────── DEC BAR ──────────────────────────────── */
+function initDecBar(){
+  const el=document.getElementById('decBar');
+  el.style.width='0%';
+  setTimeout(()=>{ el.style.width='78%'; },80);
+}
+
+/* ──────────────────────────────── ACTIONS ──────────────────────────────── */
+function selectAction(idx){
+  ['ac0','ac1','ac2'].forEach((id,i)=>{
+    document.getElementById(id).classList.toggle('sel',i===idx);
+  });
+  selectedAct=idx;
+  document.getElementById('aiRec').style.display='flex';
+}
+
+/* ──────────────────────────────── SHARE ──────────────────────────────── */
+function doShare(){
+  const btn=document.getElementById('shareBtn');
+  btn.textContent='✓ Condiviso'; btn.style.background='var(--green)';
+  setTimeout(()=>{ btn.textContent='Condividi ↗'; btn.style.background=''; },2200);
+}
+
+/* ──────────────────────────────── TOAST ──────────────────────────────── */
+function showToast(ico,title,body){
+  document.getElementById('toastIco').textContent=ico;
+  document.getElementById('toastTitle').textContent=title;
+  document.getElementById('toastBody').textContent=body;
+  const t=document.getElementById('toast');
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+/* init */
+updateProgress();
+updateBtn();
+</script>
+</body>
+</html>
